@@ -51,29 +51,41 @@ local MUTED       = Color3.fromRGB(145, 155, 149)
 
 -- =========================================================
 -- HOME TAB
--- =========================================================
+-- Rayfield Gen2 uses CreateText/CreateSection here.
 
 local Home = Window:CreateTab({
     name = "Home",
     icon = "home",
 })
 
-Home:CreateParagraph({
-    title = "NOVUS",
-    content = "Mobile-first control center • " .. LocalPlayer.DisplayName,
+Home:CreateSection({
+    name = "NOVUS PROFILE",
 })
 
-Home:CreateParagraph({
-    title = "PROFILE",
-    content = string.format(
-        "@%s  •  User ID %d\nDisplay Name: %s",
-        LocalPlayer.Name,
-        LocalPlayer.UserId,
-        LocalPlayer.DisplayName
-    ),
+Home:CreateText({
+    name = "Welcome",
+    text = "" .. LocalPlayer.DisplayName .. "\n@" .. LocalPlayer.Name .. "\nUser ID: " .. tostring(LocalPlayer.UserId),
+    icon = "user",
 })
 
--- =========================================================
+Home:CreateSection({
+    name = "LIVE STATUS",
+})
+
+Home:CreateText({
+    name = "NOVUS ONLINE",
+    text = "● ONLINE\nMobile interface ready\n3D character preview enabled\nLive FPS / Ping monitor enabled",
+    icon = "activity",
+})
+
+Home:CreateDivider()
+
+Home:CreateText({
+    name = "ABOUT NOVUS",
+    text = "Mobile-first control center with an animated visual layer, rotating 3D character preview and live performance statistics.",
+    icon = "sparkles",
+})
+
 -- CUSTOM NOVUS HUD
 -- =========================================================
 
@@ -99,7 +111,7 @@ ScreenGui.Name = "NOVUS_VisualLayer"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.DisplayOrder = 999
+ScreenGui.DisplayOrder = 0
 ScreenGui.Parent = GuiParent
 
 -- =========================================================
@@ -768,9 +780,9 @@ local Visuals = Window:CreateTab({
     icon = "eye",
 })
 
-Visuals:CreateParagraph({
-    title = "VISUALS",
-    content = "NOVUS visual module.",
+Visuals:CreateText({
+    name = "VISUALS",
+    text = "NOVUS visual module.",
 })
 
 Visuals:CreateToggle({
@@ -787,9 +799,9 @@ local Aim = Window:CreateTab({
     icon = "crosshair",
 })
 
-Aim:CreateParagraph({
-    title = "AIM",
-    content = "NOVUS aim module.",
+Aim:CreateText({
+    name = "AIM",
+    text = "NOVUS aim module.",
 })
 
 local Speed = Window:CreateTab({
@@ -797,9 +809,9 @@ local Speed = Window:CreateTab({
     icon = "gauge",
 })
 
-Speed:CreateParagraph({
-    title = "SPEED",
-    content = "NOVUS movement module.",
+Speed:CreateText({
+    name = "SPEED",
+    text = "NOVUS movement module.",
 })
 
 local Settings = Window:CreateTab({
@@ -850,9 +862,9 @@ Settings:CreateButton({
     end,
 })
 
-Settings:CreateParagraph({
-    title = "NOVUS",
-    content = "v0.2 • Mobile-first • Rayfield Gen2",
+Settings:CreateText({
+    name = "NOVUS",
+    text = "v0.3 • Mobile-first • Rayfield Gen2",
 })
 
 -- =========================================================
