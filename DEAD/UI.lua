@@ -1,878 +1,802 @@
---[[
-    NOVUS v0.2 — Mobile Glass / Neon Interface
-    Rayfield Gen2 base + custom NOVUS visual layer.
-
-    Focus:
-    • Phone-first responsive layout
-    • Animated particles
-    • Moving neon grid
-    • Scanline / glow effects
-    • Animated NOVUS header
-    • Live FPS / ping
-    • Full rotating 3D avatar
-    • Touch-friendly controls
-    • Visual / Aim / Speed / Settings placeholders
-]]
+-- NOVUS v1.0 — Mobile Landscape UI
+-- One-piece NOVUS interface, designed for Roblox phones/tablets in landscape.
+-- No Rayfield window is rendered, so there is no Rayfield pill or vertical panel.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local Stats = game:GetService("Stats")
 
-local LocalPlayer = Players.LocalPlayer
-
--- =========================================================
--- RAYFIELD GEN2
--- =========================================================
-
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
-
-local Window = Rayfield:CreateWindow({
-    name = "NOVUS",
-    subtitle = "Interface Suite",
-    sidebarLayout = true,
-})
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
 -- =========================================================
--- NOVUS PALETTE
+-- MOBILE ORIENTATION
 -- =========================================================
 
-local GREEN       = Color3.fromRGB(53, 211, 79)
-local GREEN_DARK  = Color3.fromRGB(25, 130, 43)
-local GREEN_GLOW  = Color3.fromRGB(95, 255, 117)
-local BLACK       = Color3.fromRGB(7, 9, 10)
-local DARK        = Color3.fromRGB(12, 15, 16)
-local PANEL       = Color3.fromRGB(18, 22, 23)
-local PANEL_2     = Color3.fromRGB(23, 28, 29)
-local WHITE       = Color3.fromRGB(245, 250, 246)
-local MUTED       = Color3.fromRGB(145, 155, 149)
-
--- =========================================================
--- HOME TAB
--- Rayfield Gen2 uses CreateText/CreateSection here.
-
-local Home = Window:CreateTab({
-    name = "Home",
-    icon = "home",
-})
-
-Home:CreateSection({
-    name = "NOVUS PROFILE",
-})
-
-Home:CreateText({
-    name = "Welcome",
-    text = "" .. LocalPlayer.DisplayName .. "\n@" .. LocalPlayer.Name .. "\nUser ID: " .. tostring(LocalPlayer.UserId),
-    icon = "user",
-})
-
-Home:CreateSection({
-    name = "LIVE STATUS",
-})
-
-Home:CreateText({
-    name = "NOVUS ONLINE",
-    text = "● ONLINE\nMobile interface ready\n3D character preview enabled\nLive FPS / Ping monitor enabled",
-    icon = "activity",
-})
-
-Home:CreateDivider()
-
-Home:CreateText({
-    name = "ABOUT NOVUS",
-    text = "Mobile-first control center with an animated visual layer, rotating 3D character preview and live performance statistics.",
-    icon = "sparkles",
-})
-
--- CUSTOM NOVUS HUD
--- =========================================================
-
-local function getGuiParent()
-    local ok, result = pcall(function()
-        return CoreGui
-    end)
-    if ok and result then
-        return result
-    end
-    return LocalPlayer:WaitForChild("PlayerGui")
-end
-
-local GuiParent = getGuiParent()
-
-local old = GuiParent:FindFirstChild("NOVUS_VisualLayer")
-if old then
-    old:Destroy()
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NOVUS_VisualLayer"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.DisplayOrder = 0
-ScreenGui.Parent = GuiParent
-
--- =========================================================
--- FULL-SCREEN AMBIENT BACKGROUND
--- =========================================================
-
-local Ambient = Instance.new("Frame")
-Ambient.Name = "Ambient"
-Ambient.Size = UDim2.fromScale(1, 1)
-Ambient.BackgroundColor3 = BLACK
-Ambient.BackgroundTransparency = 0.72
-Ambient.BorderSizePixel = 0
-Ambient.ZIndex = 1
-Ambient.Parent = ScreenGui
-
--- Top green aura
-local AuraTop = Instance.new("Frame")
-AuraTop.Size = UDim2.fromOffset(360, 160)
-AuraTop.Position = UDim2.new(0.5, -180, -0.05, 0)
-AuraTop.BackgroundColor3 = GREEN
-AuraTop.BackgroundTransparency = 0.93
-AuraTop.BorderSizePixel = 0
-AuraTop.ZIndex = 2
-AuraTop.Parent = Ambient
-
-local AuraCorner = Instance.new("UICorner")
-AuraCorner.CornerRadius = UDim.new(1, 0)
-AuraCorner.Parent = AuraTop
-
--- =========================================================
--- ANIMATED GRID
--- =========================================================
-
-local Grid = Instance.new("Frame")
-Grid.Name = "Grid"
-Grid.Size = UDim2.fromScale(1, 1)
-Grid.BackgroundTransparency = 1
-Grid.ZIndex = 2
-Grid.Parent = Ambient
-
-for i = 0, 16 do
-    local line = Instance.new("Frame")
-    line.Size = UDim2.new(0, 1, 1, 0)
-    line.Position = UDim2.new(i / 16, 0, 0, 0)
-    line.BackgroundColor3 = GREEN
-    line.BackgroundTransparency = 0.965
-    line.BorderSizePixel = 0
-    line.ZIndex = 2
-    line.Parent = Grid
-end
-
-for i = 0, 10 do
-    local line = Instance.new("Frame")
-    line.Size = UDim2.new(1, 0, 0, 1)
-    line.Position = UDim2.new(0, 0, i / 10, 0)
-    line.BackgroundColor3 = GREEN
-    line.BackgroundTransparency = 0.97
-    line.BorderSizePixel = 0
-    line.ZIndex = 2
-    line.Parent = Grid
-end
-
--- =========================================================
--- PARTICLE SYSTEM
--- =========================================================
-
-local ParticleLayer = Instance.new("Frame")
-ParticleLayer.Name = "Particles"
-ParticleLayer.Size = UDim2.fromScale(1, 1)
-ParticleLayer.BackgroundTransparency = 1
-ParticleLayer.ClipsDescendants = true
-ParticleLayer.ZIndex = 3
-ParticleLayer.Parent = Ambient
-
-local rng = Random.new()
-
-local function createParticle()
-    local dot = Instance.new("Frame")
-    local size = rng:NextNumber(1.5, 4)
-
-    dot.Size = UDim2.fromOffset(size, size)
-    dot.Position = UDim2.fromScale(rng:NextNumber(0, 1), rng:NextNumber(0, 1))
-    dot.BackgroundColor3 = GREEN_GLOW
-    dot.BackgroundTransparency = rng:NextNumber(0.25, 0.75)
-    dot.BorderSizePixel = 0
-    dot.ZIndex = 3
-    dot.Parent = ParticleLayer
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = dot
-
-    local duration = rng:NextNumber(3, 7)
-    local drift = rng:NextNumber(-0.04, 0.04)
-
-    task.spawn(function()
-        while dot.Parent do
-            local target = UDim2.fromScale(
-                math.clamp(dot.Position.X.Scale + drift, 0, 1),
-                -0.05
-            )
-
-            local tween = TweenService:Create(
-                dot,
-                TweenInfo.new(duration, Enum.EasingStyle.Linear),
-                {
-                    Position = target,
-                    BackgroundTransparency = rng:NextNumber(0.2, 0.85),
-                }
-            )
-
-            tween:Play()
-            tween.Completed:Wait()
-
-            if dot.Parent then
-                dot.Position = UDim2.fromScale(
-                    rng:NextNumber(0, 1),
-                    1.05
-                )
-            end
-        end
-    end)
-end
-
-for _ = 1, 28 do
-    createParticle()
-end
-
--- =========================================================
--- SCANLINES
--- =========================================================
-
-local Scan = Instance.new("Frame")
-Scan.Name = "Scanlines"
-Scan.Size = UDim2.new(1, 0, 0, 2)
-Scan.Position = UDim2.new(0, 0, -0.05, 0)
-Scan.BackgroundColor3 = GREEN_GLOW
-Scan.BackgroundTransparency = 0.93
-Scan.BorderSizePixel = 0
-Scan.ZIndex = 4
-Scan.Parent = Ambient
-
-task.spawn(function()
-    while Scan.Parent do
-        local tween = TweenService:Create(
-            Scan,
-            TweenInfo.new(4.5, Enum.EasingStyle.Linear),
-            {Position = UDim2.new(0, 0, 1.05, 0)}
-        )
-        tween:Play()
-        tween.Completed:Wait()
-        Scan.Position = UDim2.new(0, 0, -0.05, 0)
-    end
+pcall(function()
+    PlayerGui.ScreenOrientation = Enum.ScreenOrientation.LandscapeSensor
 end)
 
 -- =========================================================
--- PROFILE CARD
+-- CLEAN OLD NOVUS UI
 -- =========================================================
+
+for _, name in ipairs({"NOVUS_UI", "NOVUS_VisualLayer", "NOVUS_MobileUI"}) do
+    local old = PlayerGui:FindFirstChild(name)
+    if old then old:Destroy() end
+end
+
+-- =========================================================
+-- THEME
+-- =========================================================
+
+local C = {
+    Black = Color3.fromRGB(7, 9, 10),
+    Dark = Color3.fromRGB(11, 14, 15),
+    Panel = Color3.fromRGB(16, 20, 21),
+    Panel2 = Color3.fromRGB(20, 25, 26),
+    Panel3 = Color3.fromRGB(25, 31, 32),
+    Green = Color3.fromRGB(57, 211, 79),
+    Green2 = Color3.fromRGB(34, 164, 55),
+    GreenBright = Color3.fromRGB(104, 255, 122),
+    White = Color3.fromRGB(244, 248, 245),
+    Muted = Color3.fromRGB(143, 153, 146),
+    Line = Color3.fromRGB(45, 61, 48),
+    Red = Color3.fromRGB(240, 75, 75),
+}
+
+local function tween(obj, info, props)
+    local t = TweenService:Create(obj, info, props)
+    t:Play()
+    return t
+end
+
+local function corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 12)
+    c.Parent = obj
+    return c
+end
+
+local function stroke(obj, color, transparency, thickness)
+    local s = Instance.new("UIStroke")
+    s.Color = color or C.Line
+    s.Transparency = transparency or 0
+    s.Thickness = thickness or 1
+    s.Parent = obj
+    return s
+end
+
+local function padding(obj, l, r, t, b)
+    local p = Instance.new("UIPadding")
+    p.PaddingLeft = UDim.new(0, l or 0)
+    p.PaddingRight = UDim.new(0, r or l or 0)
+    p.PaddingTop = UDim.new(0, t or l or 0)
+    p.PaddingBottom = UDim.new(0, b or t or l or 0)
+    p.Parent = obj
+    return p
+end
+
+local function label(parent, text, size, color, font)
+    local x = Instance.new("TextLabel")
+    x.BackgroundTransparency = 1
+    x.Text = text or ""
+    x.TextColor3 = color or C.White
+    x.TextSize = size or 14
+    x.Font = font or Enum.Font.Gotham
+    x.TextXAlignment = Enum.TextXAlignment.Left
+    x.TextYAlignment = Enum.TextYAlignment.Center
+    x.Parent = parent
+    return x
+end
+
+local function button(parent, text, icon)
+    local b = Instance.new("TextButton")
+    b.AutoButtonColor = false
+    b.Text = ""
+    b.BackgroundColor3 = C.Panel2
+    b.Size = UDim2.new(1, 0, 0, 48)
+    b.Parent = parent
+    corner(b, 12)
+
+    local ic = label(b, icon or "", 18, C.Muted, Enum.Font.GothamBold)
+    ic.Size = UDim2.fromOffset(32, 48)
+    ic.Position = UDim2.fromOffset(10, 0)
+    ic.TextXAlignment = Enum.TextXAlignment.Center
+
+    local tx = label(b, text, 13, C.White, Enum.Font.GothamMedium)
+    tx.Size = UDim2.new(1, -52, 1, 0)
+    tx.Position = UDim2.fromOffset(48, 0)
+
+    b.MouseEnter:Connect(function()
+        tween(b, TweenInfo.new(0.15), {BackgroundColor3 = C.Panel3})
+    end)
+    b.MouseLeave:Connect(function()
+        tween(b, TweenInfo.new(0.15), {BackgroundColor3 = C.Panel2})
+    end)
+    b.MouseButton1Down:Connect(function()
+        tween(b, TweenInfo.new(0.08), {Size = UDim2.new(1, -4, 0, 46)})
+    end)
+    b.MouseButton1Up:Connect(function()
+        tween(b, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 0, 48)})
+    end)
+
+    return b
+end
+
+-- =========================================================
+-- SCREEN GUI
+-- =========================================================
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "NOVUS_UI"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.DisplayOrder = 999
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = PlayerGui
+
+-- Dark overlay
+local Backdrop = Instance.new("Frame")
+Backdrop.Size = UDim2.fromScale(1, 1)
+Backdrop.BackgroundColor3 = C.Black
+Backdrop.BackgroundTransparency = 0.25
+Backdrop.BorderSizePixel = 0
+Backdrop.Parent = Gui
+
+-- Very subtle green ambient light
+local Glow = Instance.new("Frame")
+Glow.AnchorPoint = Vector2.new(0.5, 0.5)
+Glow.Position = UDim2.fromScale(0.5, 0.5)
+Glow.Size = UDim2.fromScale(0.75, 0.9)
+Glow.BackgroundColor3 = C.Green
+Glow.BackgroundTransparency = 0.985
+Glow.BorderSizePixel = 0
+Glow.Parent = Backdrop
+corner(Glow, 999)
+
+-- =========================================================
+-- MAIN WINDOW
+-- =========================================================
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.fromScale(0.5, 0.53)
+Main.Size = UDim2.fromScale(0.86, 0.76)
+Main.BackgroundColor3 = C.Dark
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Parent = Gui
+corner(Main, 18)
+stroke(Main, C.Line, 0.15, 1)
+
+local MainScale = Instance.new("UIScale")
+MainScale.Scale = 1
+MainScale.Parent = Main
+
+-- =========================================================
+-- TOP BAR
+-- =========================================================
+
+local Top = Instance.new("Frame")
+Top.Size = UDim2.new(1, 0, 0, 58)
+Top.BackgroundColor3 = C.Panel
+Top.BorderSizePixel = 0
+Top.Parent = Main
+
+local Brand = label(Top, "NOVUS", 21, C.White, Enum.Font.GothamBold)
+Brand.Position = UDim2.fromOffset(22, 7)
+Brand.Size = UDim2.fromOffset(120, 26)
+
+local Sub = label(Top, "CONTROL CENTER", 9, C.Muted, Enum.Font.GothamMedium)
+Sub.Position = UDim2.fromOffset(23, 32)
+Sub.Size = UDim2.fromOffset(130, 17)
+
+local OnlineDot = Instance.new("Frame")
+OnlineDot.Size = UDim2.fromOffset(8, 8)
+OnlineDot.Position = UDim2.new(1, -112, 0.5, -4)
+OnlineDot.BackgroundColor3 = C.Green
+OnlineDot.BorderSizePixel = 0
+OnlineDot.Parent = Top
+corner(OnlineDot, 99)
+
+local OnlineText = label(Top, "ONLINE", 10, C.GreenBright, Enum.Font.GothamMedium)
+OnlineText.Size = UDim2.fromOffset(62, 24)
+OnlineText.Position = UDim2.new(1, -98, 0.5, -12)
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.fromOffset(38, 38)
+Close.Position = UDim2.new(1, -48, 0.5, -19)
+Close.BackgroundColor3 = C.Panel2
+Close.Text = "×"
+Close.TextColor3 = C.Muted
+Close.TextSize = 25
+Close.Font = Enum.Font.Gotham
+Close.AutoButtonColor = false
+Close.Parent = Top
+corner(Close, 11)
+
+-- =========================================================
+-- BODY / SIDEBAR
+-- =========================================================
+
+local Body = Instance.new("Frame")
+Body.Position = UDim2.fromOffset(0, 58)
+Body.Size = UDim2.new(1, 0, 1, -58)
+Body.BackgroundTransparency = 1
+Body.Parent = Main
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.fromOffset(172, 1)
+Sidebar.Size = UDim2.new(0, 172, 1, 0)
+Sidebar.BackgroundColor3 = C.Panel
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Body
+
+local SideLine = Instance.new("Frame")
+SideLine.Size = UDim2.fromOffset(1, 1)
+SideLine.Position = UDim2.new(1, -1, 0, 0)
+SideLine.BackgroundColor3 = C.Line
+SideLine.BackgroundTransparency = 0.4
+SideLine.BorderSizePixel = 0
+SideLine.Parent = Sidebar
+
+local Nav = Instance.new("Frame")
+Nav.Position = UDim2.fromOffset(10, 16)
+Nav.Size = UDim2.new(1, -20, 1, -32)
+Nav.BackgroundTransparency = 1
+Nav.Parent = Sidebar
+
+local NavLayout = Instance.new("UIListLayout")
+NavLayout.Padding = UDim.new(0, 7)
+NavLayout.SortOrder = Enum.SortOrder.LayoutOrder
+NavLayout.Parent = Nav
+
+local PageHolder = Instance.new("Frame")
+PageHolder.Position = UDim2.fromOffset(172, 0)
+PageHolder.Size = UDim2.new(1, -172, 1, 0)
+PageHolder.BackgroundTransparency = 1
+PageHolder.ClipsDescendants = true
+PageHolder.Parent = Body
+
+local Pages = {}
+local NavButtons = {}
+local currentPage = nil
+
+local function createPage(name)
+    local page = Instance.new("ScrollingFrame")
+    page.Name = name
+    page.Size = UDim2.fromScale(1, 1)
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.ScrollBarThickness = 3
+    page.ScrollBarImageColor3 = C.Green2
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    page.ScrollingDirection = Enum.ScrollingDirection.Y
+    page.Visible = false
+    page.Parent = PageHolder
+    padding(page, 18, 18, 16, 20)
+    Pages[name] = page
+    return page
+end
+
+local function navButton(name, icon, order)
+    local b = button(Nav, name, icon)
+    b.LayoutOrder = order
+    NavButtons[name] = b
+    return b
+end
+
+local HomeNav = navButton("Home", "⌂", 1)
+local VisualNav = navButton("Visuals", "◈", 2)
+local AimNav = navButton("Aim", "◎", 3)
+local MoveNav = navButton("Movement", "↗", 4)
+local SettingsNav = navButton("Settings", "⚙", 5)
+
+-- =========================================================
+-- HOME
+-- =========================================================
+
+local Home = createPage("Home")
+
+local HomeTitle = label(Home, "Dashboard", 23, C.White, Enum.Font.GothamBold)
+HomeTitle.Size = UDim2.new(1, 0, 0, 30)
+
+local HomeSub = label(Home, "Everything you need, in one place.", 11, C.Muted, Enum.Font.Gotham)
+HomeSub.Size = UDim2.new(1, 0, 0, 24)
 
 local Profile = Instance.new("Frame")
-Profile.Name = "Profile"
-Profile.AnchorPoint = Vector2.new(1, 0.5)
-Profile.Size = UDim2.fromOffset(330, 500)
-Profile.Position = UDim2.new(1, -18, 0.5, 0)
-Profile.BackgroundColor3 = DARK
-Profile.BackgroundTransparency = 0.08
+Profile.Size = UDim2.new(1, 0, 0, 106)
+Profile.BackgroundColor3 = C.Panel
 Profile.BorderSizePixel = 0
-Profile.ZIndex = 10
-Profile.Parent = ScreenGui
+Profile.Parent = Home
+corner(Profile, 14)
+stroke(Profile, C.Line, 0.3, 1)
 
-local ProfileCorner = Instance.new("UICorner")
-ProfileCorner.CornerRadius = UDim.new(0, 22)
-ProfileCorner.Parent = Profile
+local Avatar = Instance.new("ImageLabel")
+Avatar.Size = UDim2.fromOffset(76, 76)
+Avatar.Position = UDim2.fromOffset(15, 15)
+Avatar.BackgroundColor3 = C.Panel3
+Avatar.BorderSizePixel = 0
+Avatar.Parent = Profile
+corner(Avatar, 38)
 
-local ProfileStroke = Instance.new("UIStroke")
-ProfileStroke.Color = GREEN
-ProfileStroke.Transparency = 0.45
-ProfileStroke.Thickness = 1
-ProfileStroke.Parent = Profile
-
-local ProfileGradient = Instance.new("UIGradient")
-ProfileGradient.Rotation = 90
-ProfileGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 28, 22)),
-    ColorSequenceKeypoint.new(0.45, DARK),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(7, 9, 10)),
-})
-ProfileGradient.Parent = Profile
-
--- animated border pulse
-task.spawn(function()
-    while Profile.Parent do
-        local a = TweenService:Create(
-            ProfileStroke,
-            TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            {Transparency = 0.72}
-        )
-        local b = TweenService:Create(
-            ProfileStroke,
-            TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            {Transparency = 0.35}
-        )
-        a:Play()
-        a.Completed:Wait()
-        b:Play()
-        b.Completed:Wait()
-    end
+pcall(function()
+    Avatar.Image = Players:GetUserThumbnailAsync(Player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size180x180)
 end)
 
--- Header
-local Header = Instance.new("TextLabel")
-Header.BackgroundTransparency = 1
-Header.Position = UDim2.fromOffset(20, 16)
-Header.Size = UDim2.new(1, -40, 0, 32)
-Header.Font = Enum.Font.GothamBlack
-Header.Text = "NOVUS"
-Header.TextColor3 = GREEN
-Header.TextSize = 25
-Header.TextXAlignment = Enum.TextXAlignment.Left
-Header.ZIndex = 12
-Header.Parent = Profile
+local AvatarRing = stroke(Avatar, C.Green, 0.1, 2)
 
-local HeaderGlow = Instance.new("TextLabel")
-HeaderGlow.BackgroundTransparency = 1
-HeaderGlow.Position = UDim2.fromOffset(21, 17)
-HeaderGlow.Size = UDim2.new(1, -40, 0, 32)
-HeaderGlow.Font = Enum.Font.GothamBlack
-HeaderGlow.Text = "NOVUS"
-HeaderGlow.TextColor3 = GREEN_GLOW
-HeaderGlow.TextTransparency = 0.86
-HeaderGlow.TextSize = 25
-HeaderGlow.TextXAlignment = Enum.TextXAlignment.Left
-HeaderGlow.ZIndex = 11
-HeaderGlow.Parent = Profile
+local DisplayName = label(Profile, Player.DisplayName, 18, C.White, Enum.Font.GothamBold)
+DisplayName.Position = UDim2.fromOffset(108, 19)
+DisplayName.Size = UDim2.new(0.45, 0, 0, 27)
 
-local Status = Instance.new("TextLabel")
-Status.BackgroundTransparency = 1
-Status.Position = UDim2.fromOffset(21, 47)
-Status.Size = UDim2.new(1, -42, 0, 18)
-Status.Font = Enum.Font.GothamMedium
-Status.Text = "●  ONLINE  /  MOBILE READY"
-Status.TextColor3 = GREEN
-Status.TextSize = 10
-Status.TextXAlignment = Enum.TextXAlignment.Left
-Status.ZIndex = 12
-Status.Parent = Profile
+local Username = label(Profile, "@" .. Player.Name, 11, C.Muted, Enum.Font.Gotham)
+Username.Position = UDim2.fromOffset(109, 46)
+Username.Size = UDim2.new(0.45, 0, 0, 22)
 
--- =========================================================
--- VIEWPORT
--- =========================================================
+local Status = label(Profile, "●  NOVUS ACTIVE", 10, C.GreenBright, Enum.Font.GothamMedium)
+Status.Position = UDim2.fromOffset(109, 70)
+Status.Size = UDim2.new(0.45, 0, 0, 20)
 
-local Viewport = Instance.new("ViewportFrame")
-Viewport.Name = "CharacterPreview"
-Viewport.Position = UDim2.fromOffset(18, 76)
-Viewport.Size = UDim2.new(1, -36, 0, 270)
-Viewport.BackgroundColor3 = PANEL
-Viewport.BackgroundTransparency = 0.12
-Viewport.BorderSizePixel = 0
-Viewport.Ambient = Color3.fromRGB(190, 210, 195)
-Viewport.LightColor = Color3.fromRGB(255, 255, 255)
-Viewport.LightDirection = Vector3.new(-1, -1, -1)
-Viewport.ZIndex = 11
-Viewport.Parent = Profile
+local ID = label(Profile, "USER ID  " .. tostring(Player.UserId), 10, C.Muted, Enum.Font.GothamMedium)
+ID.AnchorPoint = Vector2.new(1, 0.5)
+ID.Position = UDim2.new(1, -18, 0.5, 0)
+ID.Size = UDim2.fromOffset(160, 24)
+ID.TextXAlignment = Enum.TextXAlignment.Right
 
-local ViewCorner = Instance.new("UICorner")
-ViewCorner.CornerRadius = UDim.new(0, 17)
-ViewCorner.Parent = Viewport
+-- Stats row
+local StatsRow = Instance.new("Frame")
+StatsRow.Size = UDim2.new(1, 0, 0, 72)
+StatsRow.BackgroundTransparency = 1
+StatsRow.Parent = Home
 
-local ViewStroke = Instance.new("UIStroke")
-ViewStroke.Color = GREEN
-ViewStroke.Transparency = 0.8
-ViewStroke.Parent = Viewport
+local StatsLayout = Instance.new("UIGridLayout")
+StatsLayout.CellPadding = UDim2.fromOffset(9, 0)
+StatsLayout.CellSize = UDim2.new(0.333, -7, 1, 0)
+StatsLayout.Parent = StatsRow
 
-local ViewGradient = Instance.new("UIGradient")
-ViewGradient.Rotation = 90
-ViewGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 40, 27)),
-    ColorSequenceKeypoint.new(0.5, PANEL),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 14, 12)),
-})
-ViewGradient.Parent = Viewport
+local function statCard(title, value, icon)
+    local card = Instance.new("Frame")
+    card.BackgroundColor3 = C.Panel
+    card.BorderSizePixel = 0
+    corner(card, 13)
+    stroke(card, C.Line, 0.45, 1)
 
-local Camera = Instance.new("Camera")
-Camera.Parent = Viewport
-Viewport.CurrentCamera = Camera
+    local ic = label(card, icon, 18, C.Green, Enum.Font.GothamBold)
+    ic.Position = UDim2.fromOffset(13, 10)
+    ic.Size = UDim2.fromOffset(30, 28)
+    ic.TextXAlignment = Enum.TextXAlignment.Center
 
-local WorldModel = Instance.new("WorldModel")
-WorldModel.Parent = Viewport
+    local v = label(card, value, 17, C.White, Enum.Font.GothamBold)
+    v.Position = UDim2.fromOffset(48, 8)
+    v.Size = UDim2.new(1, -58, 0, 28)
+    v.Name = "Value"
 
--- decorative ring behind avatar
-local Ring = Instance.new("Frame")
-Ring.Size = UDim2.fromOffset(175, 175)
-Ring.AnchorPoint = Vector2.new(0.5, 0.5)
-Ring.Position = UDim2.fromScale(0.5, 0.54)
-Ring.BackgroundTransparency = 1
-Ring.ZIndex = 11
-Ring.Parent = Viewport
+    local t = label(card, title, 9, C.Muted, Enum.Font.GothamMedium)
+    t.Position = UDim2.fromOffset(49, 35)
+    t.Size = UDim2.new(1, -58, 0, 20)
 
-local RingStroke = Instance.new("UIStroke")
-RingStroke.Color = GREEN
-RingStroke.Thickness = 1
-RingStroke.Transparency = 0.7
-RingStroke.Parent = Ring
-
-local RingCorner = Instance.new("UICorner")
-RingCorner.CornerRadius = UDim.new(1, 0)
-RingCorner.Parent = Ring
-
-task.spawn(function()
-    while Ring.Parent do
-        local tween = TweenService:Create(
-            Ring,
-            TweenInfo.new(5, Enum.EasingStyle.Linear),
-            {Rotation = Ring.Rotation + 360}
-        )
-        tween:Play()
-        tween.Completed:Wait()
-    end
-end)
-
-local CharacterClone
-local rotation = 0
-
-local function clearWorld()
-    for _, child in ipairs(WorldModel:GetChildren()) do
-        child:Destroy()
-    end
+    return card, v
 end
 
+local FPSCard, FPSValue = statCard("FPS", "--", "◉")
+FPSCard.Parent = StatsRow
+local PingCard, PingValue = statCard("PING", "-- ms", "⌁")
+PingCard.Parent = StatsRow
+local IDCard, IDValue = statCard("USER ID", tostring(Player.UserId), "#")
+IDCard.Parent = StatsRow
+
+-- Lower home row
+local Lower = Instance.new("Frame")
+Lower.Size = UDim2.new(1, 0, 0, 190)
+Lower.BackgroundTransparency = 1
+Lower.Parent = Home
+
+local Activity = Instance.new("Frame")
+Activity.Size = UDim2.new(0.57, -5, 1, 0)
+Activity.BackgroundColor3 = C.Panel
+Activity.BorderSizePixel = 0
+Activity.Parent = Lower
+corner(Activity, 14)
+stroke(Activity, C.Line, 0.45, 1)
+
+local ActivityTitle = label(Activity, "SYSTEM STATUS", 10, C.Muted, Enum.Font.GothamBold)
+ActivityTitle.Position = UDim2.fromOffset(16, 12)
+ActivityTitle.Size = UDim2.new(1, -32, 0, 22)
+
+local StatusLines = {
+    {"Interface", "Running", C.GreenBright},
+    {"Mobile mode", "Landscape", C.GreenBright},
+    {"Character", "Loaded", C.GreenBright},
+    {"Performance", "Stable", C.GreenBright},
+}
+
+for i, item in ipairs(StatusLines) do
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, -32, 0, 31)
+    row.Position = UDim2.fromOffset(16, 37 + (i - 1) * 34)
+    row.BackgroundTransparency = 1
+    row.Parent = Activity
+
+    local l = label(row, item[1], 11, C.White, Enum.Font.GothamMedium)
+    l.Size = UDim2.new(0.6, 0, 1, 0)
+
+    local r = label(row, "●  " .. item[2], 10, item[3], Enum.Font.GothamMedium)
+    r.AnchorPoint = Vector2.new(1, 0)
+    r.Position = UDim2.new(1, 0, 0, 0)
+    r.Size = UDim2.new(0.4, 0, 1, 0)
+    r.TextXAlignment = Enum.TextXAlignment.Right
+end
+
+local CharacterCard = Instance.new("Frame")
+CharacterCard.Size = UDim2.new(0.43, -5, 1, 0)
+CharacterCard.Position = UDim2.new(0.57, 10, 0, 0)
+CharacterCard.BackgroundColor3 = C.Panel
+CharacterCard.BorderSizePixel = 0
+CharacterCard.Parent = Lower
+corner(CharacterCard, 14)
+stroke(CharacterCard, C.Line, 0.45, 1)
+
+local CharTitle = label(CharacterCard, "CHARACTER", 10, C.Muted, Enum.Font.GothamBold)
+CharTitle.Position = UDim2.fromOffset(15, 12)
+CharTitle.Size = UDim2.new(1, -30, 0, 20)
+
+local Viewport = Instance.new("ViewportFrame")
+Viewport.Size = UDim2.new(1, -30, 1, -44)
+Viewport.Position = UDim2.fromOffset(15, 35)
+Viewport.BackgroundColor3 = C.Black
+Viewport.BackgroundTransparency = 0.15
+Viewport.BorderSizePixel = 0
+Viewport.Ambient = Color3.fromRGB(180, 255, 190)
+Viewport.LightColor = Color3.fromRGB(255, 255, 255)
+Viewport.LightDirection = Vector3.new(-1, -1, -1)
+Viewport.Parent = CharacterCard
+corner(Viewport, 12)
+
+local World = Instance.new("WorldModel")
+World.Parent = Viewport
+
+local Cam = Instance.new("Camera")
+Cam.Parent = Viewport
+Viewport.CurrentCamera = Cam
+
 local function buildCharacterPreview()
-    clearWorld()
-    CharacterClone = nil
+    World:ClearAllChildren()
+    local character = Player.Character
+    if not character then return end
 
-    local character = LocalPlayer.Character
-    if not character then
-        return
-    end
+    local oldArchivable = character.Archivable
+    character.Archivable = true
+    local clone = character:Clone()
+    character.Archivable = oldArchivable
 
-    local clone
-    local ok = pcall(function()
-        character.Archivable = true
-        clone = character:Clone()
-    end)
-
-    if not ok or not clone then
-        return
-    end
-
-    for _, item in ipairs(clone:GetDescendants()) do
-        if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("ModuleScript") then
-            item:Destroy()
-        elseif item:IsA("BasePart") then
-            item.CanCollide = false
-            item.Anchored = true
+    for _, obj in ipairs(clone:GetDescendants()) do
+        if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
+            obj:Destroy()
+        elseif obj:IsA("BasePart") then
+            obj.Anchored = true
+            obj.CanCollide = false
         end
     end
 
-    clone.Parent = WorldModel
-    CharacterClone = clone
-
-    local humanoid = clone:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-    end
+    clone.Parent = World
+    clone:PivotTo(CFrame.new(0, 0, 0))
 
     local cf, size = clone:GetBoundingBox()
     local height = math.max(size.Y, 4)
-    local distance = math.max(size.X, size.Z, height) * 1.55
+    Cam.CFrame = CFrame.new(Vector3.new(0, height * 0.48, height * 2.45), Vector3.new(0, height * 0.48, 0))
 
-    Camera.FieldOfView = 35
-    Camera.CFrame = CFrame.lookAt(
-        cf.Position + Vector3.new(0, height * 0.05, distance),
-        cf.Position + Vector3.new(0, height * 0.05, 0)
-    )
+    return clone
 end
 
-buildCharacterPreview()
+local PreviewCharacter = buildCharacterPreview()
 
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
-    buildCharacterPreview()
+-- =========================================================
+-- OTHER PAGES
+-- =========================================================
+
+local Visuals = createPage("Visuals")
+local Aim = createPage("Aim")
+local Movement = createPage("Movement")
+local Settings = createPage("Settings")
+
+local function pageHeader(page, title, desc)
+    local t = label(page, title, 23, C.White, Enum.Font.GothamBold)
+    t.Size = UDim2.new(1, 0, 0, 30)
+    local d = label(page, desc, 11, C.Muted, Enum.Font.Gotham)
+    d.Size = UDim2.new(1, 0, 0, 25)
+end
+
+pageHeader(Visuals, "Visuals", "Customize the NOVUS interface and visual modules.")
+pageHeader(Aim, "Aim", "Aim-related controls and configuration.")
+pageHeader(Movement, "Movement", "Movement controls and speed configuration.")
+pageHeader(Settings, "Settings", "Interface preferences and performance options.")
+
+local function addToggle(page, name, desc, default, callback)
+    local holder = Instance.new("Frame")
+    holder.Size = UDim2.new(1, 0, 0, 62)
+    holder.BackgroundColor3 = C.Panel
+    holder.BorderSizePixel = 0
+    holder.Parent = page
+    corner(holder, 12)
+    stroke(holder, C.Line, 0.5, 1)
+
+    local title = label(holder, name, 13, C.White, Enum.Font.GothamMedium)
+    title.Position = UDim2.fromOffset(14, 7)
+    title.Size = UDim2.new(1, -75, 0, 24)
+
+    local description = label(holder, desc, 9, C.Muted, Enum.Font.Gotham)
+    description.Position = UDim2.fromOffset(14, 31)
+    description.Size = UDim2.new(1, -75, 0, 18)
+
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.fromOffset(42, 24)
+    toggle.Position = UDim2.new(1, -56, 0.5, -12)
+    toggle.Text = ""
+    toggle.AutoButtonColor = false
+    toggle.BackgroundColor3 = default and C.Green2 or C.Panel3
+    toggle.Parent = holder
+    corner(toggle, 99)
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.fromOffset(18, 18)
+    knob.Position = default and UDim2.new(1, -21, 0.5, -9) or UDim2.fromOffset(3, 3)
+    knob.BackgroundColor3 = C.White
+    knob.BorderSizePixel = 0
+    knob.Parent = toggle
+    corner(knob, 99)
+
+    local state = default
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        tween(toggle, TweenInfo.new(0.16), {BackgroundColor3 = state and C.Green2 or C.Panel3})
+        tween(knob, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {
+            Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.fromOffset(3, 3)
+        })
+        if callback then callback(state) end
+    end)
+
+    return holder
+end
+
+addToggle(Visuals, "Particles", "Ambient particles around the interface.", true)
+addToggle(Visuals, "Green Glow", "Soft NOVUS green ambient lighting.", true)
+addToggle(Visuals, "Character Preview", "Show the live 3D character card on Home.", true, function(v)
+    CharacterCard.Visible = v
+end)
+addToggle(Visuals, "Animations", "Enable interface transitions and motion.", true)
+
+addToggle(Aim, "Aim Assist", "UI placeholder for your own aim module.", false)
+addToggle(Aim, "Target Highlight", "UI placeholder for target highlighting.", false)
+addToggle(Aim, "FOV Circle", "UI placeholder for an aim FOV display.", false)
+
+addToggle(Movement, "Speed Module", "UI placeholder for movement settings.", false)
+addToggle(Movement, "Jump Module", "UI placeholder for jump settings.", false)
+addToggle(Movement, "Auto Sprint", "UI placeholder for sprint behavior.", false)
+
+addToggle(Settings, "Touch Feedback", "Small visual feedback when tapping buttons.", true)
+addToggle(Settings, "Compact Mode", "Reduce spacing for smaller screens.", false)
+addToggle(Settings, "Performance Mode", "Reduce decorative animations.", false)
+
+-- =========================================================
+-- NAVIGATION
+-- =========================================================
+
+local function selectPage(name)
+    for pageName, page in pairs(Pages) do
+        page.Visible = pageName == name
+    end
+
+    for buttonName, b in pairs(NavButtons) do
+        local active = buttonName == name
+        tween(b, TweenInfo.new(0.14), {
+            BackgroundColor3 = active and C.Green2 or C.Panel2
+        })
+
+        local icon = b:FindFirstChildWhichIsA("TextLabel")
+        if icon then
+            icon.TextColor3 = active and C.White or C.Muted
+        end
+    end
+
+    currentPage = name
+end
+
+HomeNav.MouseButton1Click:Connect(function() selectPage("Home") end)
+VisualNav.MouseButton1Click:Connect(function() selectPage("Visuals") end)
+AimNav.MouseButton1Click:Connect(function() selectPage("Aim") end)
+MoveNav.MouseButton1Click:Connect(function() selectPage("Movement") end)
+SettingsNav.MouseButton1Click:Connect(function() selectPage("Settings") end)
+
+selectPage("Home")
+
+-- =========================================================
+-- FPS / PING
+-- =========================================================
+
+local frames = 0
+local lastFPS = os.clock()
+local fps = 60
+
+RunService.RenderStepped:Connect(function()
+    frames += 1
+    local now = os.clock()
+    if now - lastFPS >= 0.5 then
+        fps = math.floor(frames / (now - lastFPS) + 0.5)
+        frames = 0
+        lastFPS = now
+        FPSValue.Text = tostring(fps)
+    end
+
+    local ping = 0
+    pcall(function()
+        ping = math.floor(Player:GetNetworkPing() * 1000 + 0.5)
+    end)
+    PingValue.Text = tostring(ping) .. " ms"
 end)
 
-RunService.RenderStepped:Connect(function(delta)
-    if CharacterClone and CharacterClone.Parent then
-        rotation += delta * 0.55
+-- =========================================================
+-- 3D CHARACTER ROTATION
+-- =========================================================
 
-        local pivot = CharacterClone:GetPivot()
-        CharacterClone:PivotTo(
-            CFrame.new(pivot.Position) * CFrame.Angles(0, rotation, 0)
+local angle = 0
+RunService.RenderStepped:Connect(function(dt)
+    if PreviewCharacter and PreviewCharacter.Parent and Home.Visible then
+        angle += dt * 0.55
+        local pivot = PreviewCharacter:GetPivot()
+        local pos = pivot.Position
+        PreviewCharacter:PivotTo(CFrame.new(pos) * CFrame.Angles(0, angle, 0))
+    end
+end)
+
+Player.CharacterAdded:Connect(function()
+    task.wait(1.5)
+    PreviewCharacter = buildCharacterPreview()
+end)
+
+-- =========================================================
+-- DRAG ON TOP BAR
+-- =========================================================
+
+local dragging = false
+local dragStart
+local startPos
+
+Top.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
         )
     end
 end)
 
--- =========================================================
--- USER ID / AVATAR
--- =========================================================
-
-local Avatar = Instance.new("ImageLabel")
-Avatar.Size = UDim2.fromOffset(54, 54)
-Avatar.Position = UDim2.fromOffset(20, 362)
-Avatar.BackgroundColor3 = PANEL_2
-Avatar.BorderSizePixel = 0
-Avatar.Image = string.format(
-    "rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150",
-    LocalPlayer.UserId
-)
-Avatar.ZIndex = 12
-Avatar.Parent = Profile
-
-local AvatarCorner = Instance.new("UICorner")
-AvatarCorner.CornerRadius = UDim.new(1, 0)
-AvatarCorner.Parent = Avatar
-
-local AvatarStroke = Instance.new("UIStroke")
-AvatarStroke.Color = GREEN
-AvatarStroke.Transparency = 0.25
-AvatarStroke.Thickness = 1
-AvatarStroke.Parent = Avatar
-
-local NameLabel = Instance.new("TextLabel")
-NameLabel.BackgroundTransparency = 1
-NameLabel.Position = UDim2.fromOffset(88, 362)
-NameLabel.Size = UDim2.new(1, -108, 0, 23)
-NameLabel.Font = Enum.Font.GothamBold
-NameLabel.Text = LocalPlayer.DisplayName
-NameLabel.TextColor3 = WHITE
-NameLabel.TextSize = 16
-NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-NameLabel.ZIndex = 12
-NameLabel.Parent = Profile
-
-local UsernameLabel = Instance.new("TextLabel")
-UsernameLabel.BackgroundTransparency = 1
-UsernameLabel.Position = UDim2.fromOffset(88, 386)
-UsernameLabel.Size = UDim2.new(1, -108, 0, 18)
-UsernameLabel.Font = Enum.Font.Gotham
-UsernameLabel.Text = "@" .. LocalPlayer.Name
-UsernameLabel.TextColor3 = MUTED
-UsernameLabel.TextSize = 11
-UsernameLabel.TextXAlignment = Enum.TextXAlignment.Left
-UsernameLabel.ZIndex = 12
-UsernameLabel.Parent = Profile
-
-local IdLabel = Instance.new("TextLabel")
-IdLabel.BackgroundTransparency = 1
-IdLabel.Position = UDim2.fromOffset(88, 405)
-IdLabel.Size = UDim2.new(1, -108, 0, 16)
-IdLabel.Font = Enum.Font.Gotham
-IdLabel.Text = "ID  " .. tostring(LocalPlayer.UserId)
-IdLabel.TextColor3 = GREEN
-IdLabel.TextSize = 10
-IdLabel.TextXAlignment = Enum.TextXAlignment.Left
-IdLabel.ZIndex = 12
-IdLabel.Parent = Profile
-
--- =========================================================
--- STATS CARDS
--- =========================================================
-
-local function statCard(x, title, valueColor)
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(0.5, -27, 0, 55)
-    card.Position = UDim2.new(x, x == 0 and 20 or 7, 0, 433)
-    card.BackgroundColor3 = PANEL_2
-    card.BackgroundTransparency = 0.12
-    card.BorderSizePixel = 0
-    card.ZIndex = 12
-    card.Parent = Profile
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = card
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = GREEN
-    stroke.Transparency = 0.86
-    stroke.Parent = card
-
-    local label = Instance.new("TextLabel")
-    label.BackgroundTransparency = 1
-    label.Position = UDim2.fromOffset(10, 7)
-    label.Size = UDim2.new(1, -20, 0, 14)
-    label.Font = Enum.Font.GothamMedium
-    label.Text = title
-    label.TextColor3 = MUTED
-    label.TextSize = 9
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.ZIndex = 13
-    label.Parent = card
-
-    local value = Instance.new("TextLabel")
-    value.BackgroundTransparency = 1
-    value.Position = UDim2.fromOffset(10, 21)
-    value.Size = UDim2.new(1, -20, 0, 27)
-    value.Font = Enum.Font.GothamBold
-    value.Text = "--"
-    value.TextColor3 = valueColor
-    value.TextSize = 16
-    value.TextXAlignment = Enum.TextXAlignment.Left
-    value.ZIndex = 13
-    value.Parent = card
-
-    return value
-end
-
-local FPSLabel = statCard(0, "FRAME RATE", GREEN)
-local PingLabel = statCard(0.5, "NETWORK PING", WHITE)
-
--- =========================================================
--- LIVE STATS
--- =========================================================
-
-local frames = 0
-local elapsed = 0
-
-RunService.RenderStepped:Connect(function(delta)
-    frames += 1
-    elapsed += delta
-
-    if elapsed >= 0.5 then
-        local fps = math.floor(frames / elapsed + 0.5)
-        frames = 0
-        elapsed = 0
-        FPSLabel.Text = tostring(fps) .. " FPS"
-
-        if fps >= 100 then
-            FPSLabel.TextColor3 = GREEN_GLOW
-        elseif fps >= 60 then
-            FPSLabel.TextColor3 = GREEN
-        else
-            FPSLabel.TextColor3 = Color3.fromRGB(255, 190, 80)
-        end
-    end
-end)
-
-task.spawn(function()
-    while ScreenGui.Parent do
-        local ping
-
-        pcall(function()
-            local network = Stats:FindFirstChild("Network")
-            local serverStats = network and network:FindFirstChild("ServerStatsItem")
-            local dataPing = serverStats and serverStats:FindFirstChild("Data Ping")
-            if dataPing then
-                ping = math.floor(dataPing:GetValue() + 0.5)
-            end
-        end)
-
-        if ping then
-            PingLabel.Text = tostring(ping) .. " ms"
-
-            if ping <= 60 then
-                PingLabel.TextColor3 = GREEN_GLOW
-            elseif ping <= 120 then
-                PingLabel.TextColor3 = WHITE
-            else
-                PingLabel.TextColor3 = Color3.fromRGB(255, 190, 80)
-            end
-        else
-            PingLabel.Text = "-- ms"
-        end
-
-        task.wait(1)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
     end
 end)
 
 -- =========================================================
--- PHONE-FIRST RESPONSIVE LAYOUT
+-- OPEN / CLOSE
 -- =========================================================
 
-local function updateResponsive()
-    local camera = workspace.CurrentCamera
-    if not camera then return end
+local OpenButton = Instance.new("TextButton")
+OpenButton.Name = "NOVUS_Open"
+OpenButton.AnchorPoint = Vector2.new(0, 1)
+OpenButton.Position = UDim2.new(0, 16, 1, -16)
+OpenButton.Size = UDim2.fromOffset(112, 42)
+OpenButton.BackgroundColor3 = C.Panel
+OpenButton.Text = ""
+OpenButton.AutoButtonColor = false
+OpenButton.Visible = false
+OpenButton.Parent = Gui
+corner(OpenButton, 14)
+stroke(OpenButton, C.Green2, 0.2, 1)
 
-    local size = camera.ViewportSize
-    local width = size.X
-    local height = size.Y
+local OpenText = label(OpenButton, "NOVUS", 13, C.White, Enum.Font.GothamBold)
+OpenText.Size = UDim2.fromScale(1, 1)
+OpenText.TextXAlignment = Enum.TextXAlignment.Center
 
-    if width <= 500 then
-        -- Portrait phone
-        Profile.AnchorPoint = Vector2.new(0.5, 1)
-        Profile.Size = UDim2.new(1, -18, 0, math.min(475, height - 18))
-        Profile.Position = UDim2.new(0.5, 0, 1, -9)
-
-        Viewport.Size = UDim2.new(1, -30, 0, math.min(240, height * 0.36))
-        Viewport.Position = UDim2.fromOffset(15, 72)
-
-        Ring.Size = UDim2.fromOffset(150, 150)
-        Ring.Position = UDim2.fromScale(0.5, 0.54)
-
-        Header.TextSize = 22
-    elseif width <= 850 then
-        -- Tablet / small landscape
-        Profile.AnchorPoint = Vector2.new(1, 0.5)
-        Profile.Size = UDim2.fromOffset(310, 455)
-        Profile.Position = UDim2.new(1, -12, 0.5, 0)
-
-        Viewport.Size = UDim2.new(1, -30, 0, 245)
-        Viewport.Position = UDim2.fromOffset(15, 72)
-
-        Ring.Size = UDim2.fromOffset(160, 160)
+local function setOpen(value)
+    if value then
+        Main.Visible = true
+        Backdrop.Visible = true
+        OpenButton.Visible = false
+        Main.Size = UDim2.fromScale(0.80, 0.70)
+        tween(Main, TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+            Size = UDim2.fromScale(0.86, 0.76)
+        })
     else
-        -- Desktop
-        Profile.AnchorPoint = Vector2.new(1, 0.5)
-        Profile.Size = UDim2.fromOffset(330, 500)
-        Profile.Position = UDim2.new(1, -22, 0.5, 0)
-
-        Viewport.Size = UDim2.new(1, -36, 0, 270)
-        Viewport.Position = UDim2.fromOffset(18, 76)
-
-        Ring.Size = UDim2.fromOffset(175, 175)
+        tween(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.fromScale(0.78, 0.68)
+        }).Completed:Connect(function()
+            Main.Visible = false
+            Backdrop.Visible = false
+            OpenButton.Visible = true
+        end)
     end
 end
 
-updateResponsive()
-
-if workspace.CurrentCamera then
-    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateResponsive)
-end
-
--- =========================================================
--- TOUCH FEEDBACK
--- =========================================================
-
-local function addTouchPulse(guiObject)
-    guiObject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            local original = guiObject.Size
-
-            TweenService:Create(
-                guiObject,
-                TweenInfo.new(0.08, Enum.EasingStyle.Quad),
-                {
-                    Size = UDim2.new(
-                        original.X.Scale,
-                        original.X.Offset - 4,
-                        original.Y.Scale,
-                        original.Y.Offset - 4
-                    )
-                }
-            ):Play()
-
-            task.delay(0.08, function()
-                if guiObject.Parent then
-                    TweenService:Create(
-                        guiObject,
-                        TweenInfo.new(0.12, Enum.EasingStyle.Back),
-                        {Size = original}
-                    ):Play()
-                end
-            end)
-        end
-    end)
-end
-
-addTouchPulse(Viewport)
-addTouchPulse(Avatar)
-
--- =========================================================
--- OTHER TABS
--- =========================================================
-
-local Visuals = Window:CreateTab({
-    name = "Visuals",
-    icon = "eye",
-})
-
-Visuals:CreateText({
-    name = "VISUALS",
-    text = "NOVUS visual module.",
-})
-
-Visuals:CreateToggle({
-    name = "NOVUS Ambient",
-    description = "Toggle the animated NOVUS visual layer.",
-    value = true,
-    callback = function(value)
-        Ambient.Visible = value
-    end,
-})
-
-local Aim = Window:CreateTab({
-    name = "Aim",
-    icon = "crosshair",
-})
-
-Aim:CreateText({
-    name = "AIM",
-    text = "NOVUS aim module.",
-})
-
-local Speed = Window:CreateTab({
-    name = "Speed",
-    icon = "gauge",
-})
-
-Speed:CreateText({
-    name = "SPEED",
-    text = "NOVUS movement module.",
-})
-
-local Settings = Window:CreateTab({
-    name = "Settings",
-    icon = "settings",
-})
-
-Settings:CreateToggle({
-    name = "Profile Card",
-    description = "Show the animated Home profile card.",
-    value = true,
-    callback = function(value)
-        Profile.Visible = value
-    end,
-})
-
-Settings:CreateToggle({
-    name = "Particles",
-    description = "Toggle the floating NOVUS particles.",
-    value = true,
-    callback = function(value)
-        ParticleLayer.Visible = value
-    end,
-})
-
-Settings:CreateToggle({
-    name = "Grid",
-    description = "Toggle the subtle animated background grid.",
-    value = true,
-    callback = function(value)
-        Grid.Visible = value
-    end,
-})
-
-Settings:CreateToggle({
-    name = "Scanline",
-    description = "Toggle the moving scanline effect.",
-    value = true,
-    callback = function(value)
-        Scan.Visible = value
-    end,
-})
-
-Settings:CreateButton({
-    name = "Refresh 3D Character",
-    callback = function()
-        buildCharacterPreview()
-    end,
-})
-
-Settings:CreateText({
-    name = "NOVUS",
-    text = "v0.3 • Mobile-first • Rayfield Gen2",
-})
-
--- =========================================================
--- CLEANUP
--- =========================================================
-
-ScreenGui.AncestryChanged:Connect(function(_, parent)
-    if not parent then
-        return
-    end
+Close.MouseButton1Click:Connect(function()
+    setOpen(false)
 end)
+OpenButton.MouseButton1Click:Connect(function()
+    setOpen(true)
+end)
+
+-- =========================================================
+-- RESPONSIVE LANDSCAPE SIZING
+-- =========================================================
+
+local function updateScale()
+    local size = Gui.AbsoluteSize
+    if size.X <= 0 or size.Y <= 0 then return end
+
+    local ratio = size.X / math.max(size.Y, 1)
+
+    if ratio < 1.45 then
+        -- Still keep landscape, but make the panel wider and sidebar smaller.
+        Main.Size = UDim2.fromScale(0.94, 0.82)
+        Sidebar.Size = UDim2.new(0, 145, 1, 0)
+        PageHolder.Position = UDim2.fromOffset(145, 0)
+        PageHolder.Size = UDim2.new(1, -145, 1, 0)
+    else
+        Main.Size = UDim2.fromScale(0.86, 0.76)
+        Sidebar.Size = UDim2.new(0, 172, 1, 0)
+        PageHolder.Position = UDim2.fromOffset(172, 0)
+        PageHolder.Size = UDim2.new(1, -172, 1, 0)
+    end
+end
+
+Gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateScale)
+task.defer(updateScale)
+
+-- =========================================================
+-- SMALL TOUCH PULSE
+-- =========================================================
+
+UserInputService.TouchTap:Connect(function(pos)
+    local pulse = Instance.new("Frame")
+    pulse.AnchorPoint = Vector2.new(0.5, 0.5)
+    pulse.Position = UDim2.fromOffset(pos.X, pos.Y)
+    pulse.Size = UDim2.fromOffset(8, 8)
+    pulse.BackgroundColor3 = C.GreenBright
+    pulse.BackgroundTransparency = 0.2
+    pulse.BorderSizePixel = 0
+    pulse.ZIndex = 999
+    pulse.Parent = Gui
+    corner(pulse, 99)
+
+    tween(pulse, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {
+        Size = UDim2.fromOffset(42, 42),
+        BackgroundTransparency = 1
+    }).Completed:Connect(function()
+        pulse:Destroy()
+    end)
+end)
+
+-- Initial animation
+Main.Size = UDim2.fromScale(0.80, 0.70)
+tween(Main, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+    Size = UDim2.fromScale(0.86, 0.76)
+})
+
+print("[NOVUS] Mobile landscape interface loaded")
