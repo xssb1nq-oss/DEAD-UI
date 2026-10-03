@@ -486,7 +486,7 @@ gethui = gethui or function()
                      Id = "AltHack_Inter",
                      Url = "https://github.com/sametexe001/luas/raw/refs/heads/main/fonts/Inter.ttf"
                  })
-             })
+             end)
          end
          if not loaded then
              pcall(function() delfile("AltHack_Inter") end)
@@ -3800,9 +3800,9 @@ local ICON_SCANEYE = "rbxassetid://99244790601968"
 local ICON_BOT = "rbxassetid://80451686744860"
 local holderGui = Library.Holder.Instance
 local Window = Library:Window({
-Name = "alt.gg",
-SubName = "это пиздец",
-Logo = LOGO,
+    Name = "alt.gg",
+    SubName = "это пиздец",
+    Logo = LOGO,
 })
 Window:Group("Игрок")
 local MovementPage = Window:Page({Name = "Movement", Icon = ICON_MOVE})
